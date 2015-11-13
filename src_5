@@ -1,0 +1,11 @@
+#ifndef _MEM_SEG_H_ 
+#define _MEM_SEG_H_
+
+#define GRAY_OFFSET 0x0
+#define RESIZE OFFSET 4896
+#define SOB_OFFSET 6192
+#define G_IMG_OFFSET  1632
+#define R_IMG_OFFSET  432
+#define S_IMG_OFFSET  432
+#define BUFF_LEN 3
+#endif

@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include "system.h"
+#include <altera_avalon_mutex.h>
+#include "io.h"
+#include "../memory_segment.h"
+
+#define KEY_1   SHARED_ONCHIP_BASE + SHARED_ONCHIP_SIZE_VALUE - 1 
+#define KEY_2	(KEY_1 - 1)
+#define KEY_3	(KEY_2 - 1)
+#define KEY_4	(KEY_3 - 1)
+#define KEY_5	(KEY_4 - 1)
+#define KEY_6	(KEY_5 - 1)
+#define HEXCHECK (KEY_6 - 1)
+#define HEX (HEXCHECK-9)
+
+
+#define UNLOCK		0
+#define LOCK		1
+
+
+void getBandImage(unsigned char *ImagePtr, unsigned int check)
+{
+    int i,y,n,m;
+    volatile unsigned char a=0;
+   volatile unsigned int xDim,yDim;
+   unsigned char* shared;
+   unsigned int  image1[20][20];
+   shared = (unsigned char*)HEX;
+
+    xDim = *ImagePtr++ ;
+    yDim = *ImagePtr++ ;
+    for (n = 0; n < yDim; n++)
+    {
+        for (m = 0; m <xDim; m++)
+        {
+            image1[n][m]=*ImagePtr++;
+        }
+    }
+    for (y=0;y<yDim;y=y+2)
+    {   a=((image1[y][0])>>5 +1);
+        *shared++ = a;
+    }
+
+}
+
+int main()
+{   
+    unsigned int i ,k=0;
+ 
+   for(i=0;i<6000;i++){;}	//delay, so that processor 1 can initialise
+
+	//alt_printf("\n\r\t Hello : PROCESSOR 4 \n\r");
+	
+	alt_mutex_dev* mutex_C  = altera_avalon_mutex_open( "/dev/mutex_2" );
+
+    while(1)
+    { 
+        if((IORD_8DIRECT(KEY_3,0)) == UNLOCK)
+        {    k++;
+            if (k>3) k=1;
+            
+            altera_avalon_mutex_lock(mutex_C,1);
+            IOWR_8DIRECT(KEY_3,0,LOCK);
+            IOWR_8DIRECT(HEXCHECK,0,LOCK);
+            if(k=1)
+            getBandImage(RESIZE_IMAGE_DATA_1,k);
+            else if (k=2)
+            getBandImage(RESIZE_IMAGE_DATA_2,k);
+            else if (k=3)
+            getBandImage(RESIZE_IMAGE_DATA_3,k);
+            IOWR_8DIRECT(HEXCHECK,0,UNLOCK);
+            IOWR_8DIRECT(KEY_4,0,UNLOCK);
+            altera_avalon_mutex_unlock(mutex_C);
+           //IOWR_8DIRECT(KEY_1,0,UNLOCK);
+        }
+    }
+    return 0;
+}
+
